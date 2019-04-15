@@ -35,6 +35,12 @@ class Membership(models.Model):
     group = models.ForeignKey(Group, on_delete=models.CASCADE)
     date_joined = models.DateTimeField()
 
+    @classmethod
+    def create(cls, user, group):
+        membership = Membership(user=user, group=group, date_joined=timezone.now)
+        membership.save()
+        return membership
+
 
     def __str__(self):
         return f"{self.user.username} in {self.group.name} group"

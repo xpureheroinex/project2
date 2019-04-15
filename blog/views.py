@@ -4,8 +4,9 @@ from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login
 from django.http import HttpResponseRedirect, HttpResponse
 from django.conf import settings
-from .models import Group
+from .models import Group, Membership
 from .forms import GroupForm
+from django.utils import timezone
 
 import pdb
 
@@ -117,6 +118,21 @@ class GroupDelete(TemplateView):
             return HttpResponse("Couldn't delete", status=400)
 
 
+class GroupJoin(TemplateView):
+
+    def post(self, request, group_id):
+        group = get_object_or_404(Group, pk=group_id)
+        user = request.user
+        try:
+            membership = Membership.objects.get(group=group, user=user)
+            membership.delete()
+        except Membership.DoesNotExist:
+            Membership.objects.create(group=group, user=user, date_joined=timezone.now())
+
+        return HttpResponseRedirect(f'/groups/{group_id}/')
+
+
+            # return  HttpResponse("Error occupied", status=400)
 
 
 

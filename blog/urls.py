@@ -14,5 +14,6 @@ urlpatterns = [
          name='group_update'),
     path('groups/<int:group_id>/delete/', views.GroupDelete.as_view(),
          name='group_delete'),
+    path('groups/<int:group_id>/join/', views.GroupJoin.as_view())
 
 ]

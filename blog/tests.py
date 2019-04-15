@@ -115,6 +115,7 @@ class RegistrationPageTest(TestCase):
 class GroupTest(TestCase):
 
     def setUp(self):
+        import os; print(os.environ['DJANGO_SETTINGS_MODULE'])
         self.client = Client()
         self.user = User.objects.create_user(**LOGIN_USER_DATA)
         self.client.login(username='test', password='test123')
@@ -164,3 +165,7 @@ class GroupTest(TestCase):
     def test_delete_group_by_user(self):
         response = self.client.post(f'/groups/{self.new_group.pk}/delete/')
         self.assertRedirects(response, '/groups/')
+
+    def test_join_group_by_user(self):
+        response = self.client.post(f'/groups/{self.new_group.pk}/join/')
+        self.assertRedirects(response, f'/groups/{self.new_group.pk}/')
