@@ -26,6 +26,7 @@ class Group(models.Model):
     @classmethod
     def create(cls, name, theme, creator):
         group = Group(name=name, theme=theme, creator=creator)
+        group.save()
         return group
 
 

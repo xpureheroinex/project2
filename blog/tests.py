@@ -9,7 +9,7 @@ from . import views
 import unittest
 
 LOGIN_USER_DATA = {'username': 'test',
-             'email': 'test@test.com',
+                   'email': 'test@test.com',
                    'password': 'test123'}
 
 REGISTRATION_USER_DATA = {'username': 'test1',
@@ -24,6 +24,9 @@ UNVALID_REGISTRATION_USER_DATA = {'username': 'test2',
 
 NEW_GROUP_DATA = {'name': 'test_group',
                   'theme': 'GE',
+                  }
+UPDATE_GROUP_DATA = {'name': 'updated_group',
+                  'theme': 'SP',
                   }
 # Create your tests here.
 class HomePageTest(TestCase):
@@ -113,10 +116,14 @@ class GroupTest(TestCase):
 
     def setUp(self):
         self.client = Client()
-        self.new_user = User.objects.create_user(**LOGIN_USER_DATA)
-        self.request_factory = RequestFactory()
-        # import pdb; pdb.set_trace()
         self.user = User.objects.create_user(**LOGIN_USER_DATA)
+        self.client.login(username='test', password='test123')
+        self.new_group = Group.create(**NEW_GROUP_DATA, creator=self.user)
+
+
+    def TearDown(self):
+        del self.client
+        del self.user
 
     def test_groups_url_resolves_to_GroupsList_view(self):
         found_view = resolve('/groups/')
@@ -127,15 +134,32 @@ class GroupTest(TestCase):
         self.assertTemplateUsed(response, 'groups/groups_list.html')
         self.assertEqual(response.status_code, 200)
 
-    def test_create_new_group_by_user(self):
-        # request = self.request_factory.post('/groups/new/', data=NEW_GROUP_DATA)
-        # # import pdb; pdb.set_trace()
-        # request.user = self.user
-        # response = views.GroupCreate(request)
+    def test_group_info_url_resolves_to_GroupInfo_view(self):
+        # import pdb; pdb.set_trace()
+        found_view = resolve(f'/groups/{self.new_group.pk}/')
+        self.assertEqual(found_view.url_name, 'group_info')
 
-        user = self.user
-        client = self.client
-        client.login(username=user.username, password=user.password)
-        response = client.post('/groups/new/', data=NEW_GROUP_DATA)
+    def test_create_new_group_by_user(self):
+        response = self.client.post('/groups/new/', data=NEW_GROUP_DATA)
         self.assertRedirects(response, '/groups/')
 
+    def test_create_group_page_returns_correct_template(self):
+        response = self.client.get("/groups/new/")
+        self.assertTemplateUsed(response, 'groups/group_form.html')
+        self.assertEqual(response.status_code, 200)
+
+    def test_group_update_url_resolves_to_GroupUpdate_view(self):
+        found_view = resolve(f'/groups/{self.new_group.pk}/update/')
+        self.assertEqual(found_view.url_name, 'group_update')
+
+    def test_update_group_by_user(self):
+        response = self.client.post(f'/groups/{self.new_group.pk}/update/',
+                                    data=UPDATE_GROUP_DATA)
+        self.assertRedirects(response, f'/groups/{self.new_group.pk}/')
+
+    def test_group_delete_url_resolves_to_GroupDelete_view(self):
+        found_view = resolve(f'/groups/{self.new_group.pk}/delete/')
+        self.assertEqual(found_view.url_name, 'group_delete')
+
+    def test_delete_group_by_user(self):
+        pass

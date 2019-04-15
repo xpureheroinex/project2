@@ -1,5 +1,5 @@
-from django.shortcuts import render, redirect
-from django.views.generic import (ListView, CreateView, TemplateView)
+from django.shortcuts import render, redirect, get_object_or_404
+from django.views.generic import (ListView, DetailView, TemplateView)
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login
 from django.http import HttpResponseRedirect, HttpResponse
@@ -54,29 +54,52 @@ class GroupsList(ListView):
     model = Group
     template_name = 'groups/groups_list.html'
 
+
+class GroupInfo(DetailView):
+
+    model = Group
+    template_name = 'groups/group_info.html'
+
+
 class GroupCreate(TemplateView):
-    # model = Group
-    # fields = ['name', 'theme', 'date_created', 'creator']
-    # template_name = 'groups/group_form.html'
-    # success_url = 'groups/groups_list.html'
+
+    def get(self, request):
+        template_name = "groups/group_form.html"
+        return render(request, template_name=template_name)
 
     def post(self, request):
         name = request.POST.get('name')
         theme = request.POST.get('theme')
-        creator = request.user.pk
+        creator = request.user
         data = {'name': name,
-                'theme': theme}
+                'theme': theme,
+                'creator': creator.pk}
         form = GroupForm(data)
         if form.is_valid():
-
-            #TODO: change GroupForm to ModelForm, save new group with form.instanse.save(), fix tests, pass user in request to fix the NULL creator_id
-
-            # group = form.instance
-            # group.creator = creator
-            # group.save()
-            group = Group.create(name, theme, creator)
+            group = form.instance
+            group.save()
             return HttpResponseRedirect('/groups/')
-        return HttpResponse("Provided data is not valid", status=400)
+        return HttpResponse("Data is not valid", status=400)
+
+
+class GroupUpdate(TemplateView):
+
+    def get(self, request):
+        template_name = "groups/group_form.html"
+        return render(request, template_name=template_name)
+
+    def post(self, request, group_id):
+        group = get_object_or_404(Group, pk=group_id)
+        name = request.POST.get('name')
+        theme = request.POST.get('theme')
+        data = {'name': name, 'theme': theme, 'creator': group.pk}
+        form = GroupForm(data=data, instance=group)
+        if form.is_valid():
+            form.save()
+            return HttpResponseRedirect(f'/groups/{group_id}/')
+        return HttpResponse("Update wasn't successful", status=400)
+
+
 
 
 

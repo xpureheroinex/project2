@@ -6,7 +6,7 @@ class GroupForm(forms.ModelForm):
 
     class Meta:
         model = Group
-        fields = ['name', 'theme']
+        fields = ['name', 'theme', 'creator']
 
     name = forms.CharField(label='name', max_length=100)
     theme = forms.ChoiceField(choices=Group.THEME_CHOICES)
