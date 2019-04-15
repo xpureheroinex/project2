@@ -162,4 +162,5 @@ class GroupTest(TestCase):
         self.assertEqual(found_view.url_name, 'group_delete')
 
     def test_delete_group_by_user(self):
-        pass
+        response = self.client.post(f'/groups/{self.new_group.pk}/delete/')
+        self.assertRedirects(response, '/groups/')

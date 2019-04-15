@@ -12,7 +12,7 @@ urlpatterns = [
     path('groups/<int:pk>/', views.GroupInfo.as_view(), name='group_info'),
     path('groups/<int:group_id>/update/', views.GroupUpdate.as_view(),
          name='group_update'),
-    path('groups/<int:group_id>/delete/', views.GroupUpdate.as_view(),
+    path('groups/<int:group_id>/delete/', views.GroupDelete.as_view(),
          name='group_delete'),
 
 ]

@@ -7,6 +7,8 @@ from django.conf import settings
 from .models import Group
 from .forms import GroupForm
 
+import pdb
+
 
 def home_page(request):
     return render(request, template_name='homepage.html')
@@ -98,6 +100,25 @@ class GroupUpdate(TemplateView):
             form.save()
             return HttpResponseRedirect(f'/groups/{group_id}/')
         return HttpResponse("Update wasn't successful", status=400)
+
+
+class GroupDelete(TemplateView):
+
+    def get(self, request):
+            template_name = "groups/group_info.html"
+            return render(request, template_name=template_name)
+
+    def post(self, request, group_id):
+        group = get_object_or_404(Group, pk=group_id)
+        try:
+            group.delete()
+            return HttpResponseRedirect('/groups/')
+        except:
+            return HttpResponse("Couldn't delete", status=400)
+
+
+
+
 
 
 
