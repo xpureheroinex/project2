@@ -18,7 +18,7 @@ class Group(models.Model):
     theme = models.CharField(choices=THEME_CHOICES, max_length=2)
     creator = models.ForeignKey(User, on_delete=models.CASCADE, related_name='creator')
     date_created = models.DateTimeField(default=timezone.now)
-    members = models.ManyToManyField(User, through='Membership', related_name='members', null=True)
+    members = models.ManyToManyField(User, through='Membership', related_name='members')
 
     def __str__(self):
         return self.name
@@ -44,3 +44,17 @@ class Membership(models.Model):
 
     def __str__(self):
         return f"{self.user.username} in {self.group.name} group"
+
+
+class Post(models.Model):
+
+    title = models.CharField(max_length=100)
+    text = models.TextField()
+    creator = models.ForeignKey(User, on_delete=models.CASCADE, related_name='post_creator')
+    date_created = models.DateTimeField(default=timezone.now)
+
+    @classmethod
+    def create(cls, title, text, creator):
+        post = Post(title=title, text=text, creator=creator)
+        post.save()
+        return post

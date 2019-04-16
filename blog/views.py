@@ -1,11 +1,14 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.generic import (ListView, DetailView, TemplateView)
 from django.contrib.auth.models import User
-from django.contrib.auth import authenticate, login
+from django.contrib.auth import login
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.decorators import login_required
+from django.utils.decorators import method_decorator
 from django.http import HttpResponseRedirect, HttpResponse
 from django.conf import settings
-from .models import Group, Membership
-from .forms import GroupForm
+from .models import Group, Membership, Post
+from .forms import GroupForm, PostForm
 from django.utils import timezone
 
 import pdb
@@ -52,19 +55,19 @@ def user_registration(request):
                                     status=400)
 
 
-class GroupsList(ListView):
+class GroupsList(LoginRequiredMixin, ListView):
 
     model = Group
     template_name = 'groups/groups_list.html'
 
 
-class GroupInfo(DetailView):
+class GroupInfo(LoginRequiredMixin, DetailView):
 
     model = Group
     template_name = 'groups/group_info.html'
 
 
-class GroupCreate(TemplateView):
+class GroupCreate(LoginRequiredMixin, TemplateView):
 
     def get(self, request):
         template_name = "groups/group_form.html"
@@ -85,7 +88,7 @@ class GroupCreate(TemplateView):
         return HttpResponse("Data is not valid", status=400)
 
 
-class GroupUpdate(TemplateView):
+class GroupUpdate(LoginRequiredMixin, TemplateView):
 
     def get(self, request):
         template_name = "groups/group_form.html"
@@ -95,7 +98,7 @@ class GroupUpdate(TemplateView):
         group = get_object_or_404(Group, pk=group_id)
         name = request.POST.get('name')
         theme = request.POST.get('theme')
-        data = {'name': name, 'theme': theme, 'creator': group.pk}
+        data = {'name': name, 'theme': theme, 'creator': group.creator.pk}
         form = GroupForm(data=data, instance=group)
         if form.is_valid():
             form.save()
@@ -103,11 +106,7 @@ class GroupUpdate(TemplateView):
         return HttpResponse("Update wasn't successful", status=400)
 
 
-class GroupDelete(TemplateView):
-
-    def get(self, request):
-            template_name = "groups/group_info.html"
-            return render(request, template_name=template_name)
+class GroupDelete(LoginRequiredMixin, TemplateView):
 
     def post(self, request, group_id):
         group = get_object_or_404(Group, pk=group_id)
@@ -118,7 +117,7 @@ class GroupDelete(TemplateView):
             return HttpResponse("Couldn't delete", status=400)
 
 
-class GroupJoin(TemplateView):
+class GroupJoin(LoginRequiredMixin, TemplateView):
 
     def post(self, request, group_id):
         group = get_object_or_404(Group, pk=group_id)
@@ -132,7 +131,62 @@ class GroupJoin(TemplateView):
         return HttpResponseRedirect(f'/groups/{group_id}/')
 
 
-            # return  HttpResponse("Error occupied", status=400)
+class PostsList(LoginRequiredMixin, ListView):
+
+    model = Post
+    template_name = 'posts/posts_list.html'
+
+class PostInfo(LoginRequiredMixin, DetailView):
+
+    model = Post
+    template_name = 'posts/post_info.html'
+
+class PostCreate(LoginRequiredMixin, TemplateView):
+
+    def get(self, request):
+        template_name = 'posts/post_form.html'
+        return redirect(request, template_name=template_name)
+
+    def post(self, request):
+        title = request.POST.get('title')
+        text = request.POST.get('text')
+        creator = request.user
+        data = {'title': title,
+                'text': text,
+                'creator': creator.pk}
+        form = PostForm(data)
+        if form.is_valid():
+            post = form.instance
+            post.save()
+            return HttpResponseRedirect('/posts/')
+        return HttpResponse("Couldn't create a post", status=400)
+
+class PostUpdate(LoginRequiredMixin, TemplateView):
+
+    def get(self, request):
+        template_name = 'posts/post_form.html'
+        return render(request, template_name=template_name)
+
+    def post(self, request, post_id):
+        title = request.POST.get('title')
+        text = request.POST.get('text')
+        post = get_object_or_404(Post, pk=post_id)
+        data = {'title': title, 'text': text, 'creator': post.creator.pk}
+        form = PostForm(data=data, instance=post)
+        if form.is_valid():
+            form.save()
+            return HttpResponseRedirect(f'/posts/{post_id}')
+        return HttpResponse("Update wasn't successful", status=400)
+
+class PostDelete(LoginRequiredMixin, TemplateView):
+
+    def post(self, request, post_id):
+        post = get_object_or_404(Post, pk=post_id)
+        try:
+            post.delete()
+            return HttpResponseRedirect('/posts/')
+        except:
+            return HttpResponse("Couldn't delete", status=400)
 
 
 

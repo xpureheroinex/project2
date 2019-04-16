@@ -1,4 +1,4 @@
-from .models import Group
+from .models import Group, Post
 from django import forms
 from django.contrib.auth.models import User
 
@@ -10,3 +10,12 @@ class GroupForm(forms.ModelForm):
 
     name = forms.CharField(label='name', max_length=100)
     theme = forms.ChoiceField(choices=Group.THEME_CHOICES)
+
+class PostForm(forms.ModelForm):
+
+    class Meta:
+        model = Post
+        fields = ['title', 'text', 'creator']
+
+    title = forms.CharField(label='title', max_length=100)
+    text = forms.Textarea()

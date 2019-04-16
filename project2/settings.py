@@ -119,6 +119,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/2.2/howto/static-files/
 
 STATIC_URL = '/static/'
+LOGIN_URL = '/login/'
 
 LOGIN_ERROR_MESSAGE ="Wrong credentials, try again"
 REGISTRATION_PASSWORDS_ERROR_MESSAGE = "Passwords don't match"
