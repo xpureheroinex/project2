@@ -1,10 +1,29 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+{% extends 'base.html' %}
+{% block content %}
+<div class="header">
+<h2 class="header-center">Groups:</h2>
+</div>
+    <div class="container">
+    {% for group in group_list %}
 
-</body>
-</html>
+        <div class="card" style="width: 25rem; ">
+  <div class="card-body mt-3">
+    <h5 class="card-title"><a class="nav nav-elem" href="{% url 'group_info' pk=group.pk %}">
+            {{ group.name }}</a></h5>
+    <h6 class="card-subtitle mb-2 text-muted">Created: {{ group.date_created }} by {{ group.creator.username }}</h6>
+    <h6 class="card-subtitle mb-2 text-muted">Theme: {{ group.get_theme_display }}</h6>
+    <h6 class="card-subtitle mb-2 text-muted">Members:  {{ group.members.count }}</h6>
+
+      <form method="post" action="{% url 'group_join' group.pk %}"> {% csrf_token %}
+    <button class="btn btn-warning" role="button">Join</button>
+          </form>
+
+
+{#  TODO: fix view GroupJoin, add template to render, here add check if user is a member/not and display/hide button #}
+  </div>
+    {% endfor %}
+
+    </div>
+    </div>
+
+{% endblock %}

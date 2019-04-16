@@ -1,10 +1,47 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+{% extends 'base.html' %}
+{% block content %}
+     <div class="text-center login-container">
+    <div class="form-group col-5 login-bg">
+    <form method="POST" id='log_form' class="form-signin" >
+        {% csrf_token %}
+        <h1 class="h3 mb-3 font-weight-normal">Please sign in</h1>
+        <label for=name class="sr-only">USERNAME</label>
+        <input type="text" name="username" id="name" class="form-control username-input"
+        placeholder="Username" required autofocus> <br>
+        <label for=password1 class="sr-only">ENTER PASSWORD</label>
+        <input type="password" name=password id="password1" class="form-control password-input"
+        placeholder="Password" required> <br>
+        <button class="btn btn-lg btn-success btn-block"
+        type="button" onclick="checkform()">OK</button>
+    </form>
 
-</body>
-</html>
+    <div id='error' class="text-center error-container" style="display: none">
+        <p>Fill in all fields </p>
+    </div>
+    <div class="text-center error-container" >
+        <p> {{ error }} </p>
+    </div>
+    <p class="text-center text-muted h6 mt-2">
+        New to the system?
+        <a class="reg-link" href="{% url 'registration' %} ">Sign up</a>
+    </p>
+</div>
+</div>
+
+    <script>
+    function checkform() {
+        var name = document.getElementById('name').value;
+        var pass = document.getElementById('password1').value;
+        var error = document.getElementById('error');
+        if(name === '' || pass === '') {
+            error.style.display = 'block';
+        }
+        else {
+            error.style.display = 'none';
+            var form = document.getElementById('log_form').submit();
+        }
+    }
+    </script>
+
+
+{% endblock %}

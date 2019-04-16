@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.generic import (ListView, DetailView, TemplateView)
 from django.contrib.auth.models import User
-from django.contrib.auth import login
+from django.contrib.auth import login, logout
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator
@@ -10,6 +10,8 @@ from django.conf import settings
 from .models import Group, Membership, Post
 from .forms import GroupForm, PostForm
 from django.utils import timezone
+from django.template.response import TemplateResponse
+
 
 import pdb
 
@@ -29,9 +31,18 @@ def user_login(request):
                 login(request, user)
                 return HttpResponseRedirect('/')
             else:
-                return HttpResponse(settings.LOGIN_ERROR_MESSAGE, status=401)
+                return render(request, 'login.html', {'error': settings.LOGIN_ERROR_MESSAGE}, status=401)
+                # return HttpResponse(settings.LOGIN_ERROR_MESSAGE, status=401)
+                # return TemplateResponse(request, 'login.html',
+                #                     context={'error': settings.LOGIN_ERROR_MESSAGE},
+                #                     status=400)
         except User.DoesNotExist:
             return HttpResponse(settings.LOGIN_ERROR_MESSAGE, status=401)
+
+def user_logout(request):
+    user = request.user
+    logout(user)
+    return HttpResponseRedirect('/')
 
 def user_registration(request):
     if request.method == "GET":
@@ -90,23 +101,27 @@ class GroupCreate(LoginRequiredMixin, TemplateView):
 
 class GroupUpdate(LoginRequiredMixin, TemplateView):
 
-    def get(self, request):
+    def get(self, request, group_id):
+        group = Group.objects.get(pk=group_id)
+        form = GroupForm(instance=group)
         template_name = "groups/group_form.html"
-        return render(request, template_name=template_name)
+        return render(request, template_name, {'form': form})
 
     def post(self, request, group_id):
-        group = get_object_or_404(Group, pk=group_id)
+        group = get_object_or_404(Group, id=group_id)
         name = request.POST.get('name')
         theme = request.POST.get('theme')
         data = {'name': name, 'theme': theme, 'creator': group.creator.pk}
         form = GroupForm(data=data, instance=group)
         if form.is_valid():
             form.save()
+            # return render(request, "groups/group_info.html")
             return HttpResponseRedirect(f'/groups/{group_id}/')
         return HttpResponse("Update wasn't successful", status=400)
 
 
 class GroupDelete(LoginRequiredMixin, TemplateView):
+    template_name = 'groups/group_form.html'
 
     def post(self, request, group_id):
         group = get_object_or_404(Group, pk=group_id)
@@ -128,7 +143,7 @@ class GroupJoin(LoginRequiredMixin, TemplateView):
         except Membership.DoesNotExist:
             Membership.objects.create(group=group, user=user, date_joined=timezone.now())
 
-        return HttpResponseRedirect(f'/groups/{group_id}/')
+        return HttpResponseRedirect(f'/groups/')
 
 
 class PostsList(LoginRequiredMixin, ListView):

@@ -1,0 +1,30 @@
+.login-container {
+    margin-left: 37%;
+    margin-top: 2%;
+}
+.login-bg {
+    background-color: rgba(0, 0, 0, 0.1);
+    border-radius: 3%;
+    padding: 5% 5% 5% 5%;
+}
+.username-input {
+    padding:8% 8% 8% 8%;
+}
+.password-input {
+    padding:8% 8% 8% 8%;
+    margin-top: -5%;
+}
+.error-container {
+    margin-top: 2%; color: crimson;
+}
+.reg-link {
+    color:rgb(46, 190, 27);
+}
+
+.header-center {
+    text-align: center;
+}
+
+.group-list {
+    margin-top: 3%;
+}
