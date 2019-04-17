@@ -3,27 +3,66 @@
 <div class="header">
 <h2 class="header-center">Groups:</h2>
 </div>
+    <div class="ml-5">
+    <a class="btn btn-success" href="{% url 'group_create' %}" role="button">Create new</a>
+    </div>
     <div class="container">
+    <div class="row">
+    <div class="col-8">
     {% for group in group_list %}
 
         <div class="card" style="width: 25rem; ">
-  <div class="card-body mt-3">
-    <h5 class="card-title"><a class="nav nav-elem" href="{% url 'group_info' pk=group.pk %}">
+  <div class="card-body">
+    <h5 class="card-title"><a class="nav nav-elem" href="{% url 'group_info' group_id=group.pk %}">
             {{ group.name }}</a></h5>
     <h6 class="card-subtitle mb-2 text-muted">Created: {{ group.date_created }} by {{ group.creator.username }}</h6>
     <h6 class="card-subtitle mb-2 text-muted">Theme: {{ group.get_theme_display }}</h6>
     <h6 class="card-subtitle mb-2 text-muted">Members:  {{ group.members.count }}</h6>
 
-      <form method="post" action="{% url 'group_join' group.pk %}"> {% csrf_token %}
-    <button class="btn btn-warning" role="button">Join</button>
-          </form>
+{#      <form method="post" action="{% url 'group_join' group.pk %}"> {% csrf_token %}#}
+{#          {% if not data.is_member %}#}
+{#    <button class="btn btn-warning" role="button" id="join_button">Join</button>#}
+{#          {% else %}#}
+{#              <button class="btn btn-warning" role="button" id="join_button">Leave</button>#}
+{#          {% endif %}#}
+{##}
+{##}
+{##}
+{#          </form>#}
 
 
 {#  TODO: fix view GroupJoin, add template to render, here add check if user is a member/not and display/hide button #}
   </div>
     {% endfor %}
+    </div>
+    </div>
 
     </div>
     </div>
 
 {% endblock %}
+{##}
+{#{% block javascript %}#}
+{#    <!-- block javascript -->#}
+{##}
+{#    <script>#}
+{#    $.ajax({#}
+{#        url: '{% url 'group_join' 1 %}',#}
+{#        data: {},#}
+{#        dataType: 'json',#}
+{#        success: function (data) {#}
+{#            debugger;#}
+{#            console.log(data.is_member);#}
+{#            var btn = document.getElementById('join_button');#}
+{#            if(data.is_member) {#}
+{#                btn.value = "Leave";#}
+{#            }#}
+{#            else {#}
+{#                btn.value = "Join";#}
+{#            }#}
+{#        }#}
+{##}
+{#    })#}
+{#    </script>#}
+{#{% endblock %}#}
+

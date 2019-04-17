@@ -1,11 +1,11 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from django.views.generic import (ListView, DetailView, TemplateView)
+from django.views.generic import (ListView, DetailView, View, TemplateView)
 from django.contrib.auth.models import User
 from django.contrib.auth import login, logout
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator
-from django.http import HttpResponseRedirect, HttpResponse
+from django.http import HttpResponseRedirect, HttpResponse, JsonResponse
 from django.conf import settings
 from .models import Group, Membership, Post
 from .forms import GroupForm, PostForm
@@ -40,8 +40,7 @@ def user_login(request):
             return HttpResponse(settings.LOGIN_ERROR_MESSAGE, status=401)
 
 def user_logout(request):
-    user = request.user
-    logout(user)
+    logout(request)
     return HttpResponseRedirect('/')
 
 def user_registration(request):
@@ -72,17 +71,48 @@ class GroupsList(LoginRequiredMixin, ListView):
     template_name = 'groups/groups_list.html'
 
 
-class GroupInfo(LoginRequiredMixin, DetailView):
+class GroupPage(LoginRequiredMixin, TemplateView):
 
-    model = Group
-    template_name = 'groups/group_info.html'
+    def get(self, request, group_id):
+        template_name = 'groups/group_info.html'
+        group = get_object_or_404(Group, pk=group_id)
+        post_list = Post.objects.filter(group=group_id).values()
+        posts = [elem for elem in post_list]
+        user = request.user
+        is_member = self.is_member(user, group)
+        return render(request, template_name, {'is_member': is_member,
+                                               'group': group,
+                                               'posts': posts})
 
+    def post(self, request, group_id):
+        group = get_object_or_404(Group, pk=group_id)
+        template_name = 'groups/group_info.html'
+        user = request.user
+        is_member = self.is_member(user, group)
+        if is_member:
+            membership = Membership.objects.get(group=group, user=user)
+            membership.delete()
+        else:
+            Membership.objects.create(group=group, user=user,
+                                      date_joined=timezone.now())
+        return HttpResponseRedirect(f'/groups/{group_id}/')
+
+
+    @staticmethod
+    def is_member(user, group):
+        try:
+            Membership.objects.get(group=group, user=user)
+            is_member = True
+        except Membership.DoesNotExist:
+            is_member = False
+        return is_member
 
 class GroupCreate(LoginRequiredMixin, TemplateView):
 
     def get(self, request):
-        template_name = "groups/group_form.html"
-        return render(request, template_name=template_name)
+        template_name = "groups/group_create.html"
+        form = GroupForm()
+        return render(request, template_name, {'form': form})
 
     def post(self, request):
         name = request.POST.get('name')
@@ -132,19 +162,6 @@ class GroupDelete(LoginRequiredMixin, TemplateView):
             return HttpResponse("Couldn't delete", status=400)
 
 
-class GroupJoin(LoginRequiredMixin, TemplateView):
-
-    def post(self, request, group_id):
-        group = get_object_or_404(Group, pk=group_id)
-        user = request.user
-        try:
-            membership = Membership.objects.get(group=group, user=user)
-            membership.delete()
-        except Membership.DoesNotExist:
-            Membership.objects.create(group=group, user=user, date_joined=timezone.now())
-
-        return HttpResponseRedirect(f'/groups/')
-
 
 class PostsList(LoginRequiredMixin, ListView):
 
@@ -158,17 +175,20 @@ class PostInfo(LoginRequiredMixin, DetailView):
 
 class PostCreate(LoginRequiredMixin, TemplateView):
 
-    def get(self, request):
-        template_name = 'posts/post_form.html'
-        return redirect(request, template_name=template_name)
+    def get(self, request, **args):
+        template_name = 'posts/post_create.html'
+        form = PostForm()
+        return render(request, template_name, {'form': form})
 
-    def post(self, request):
+    def post(self, request, group_id):
         title = request.POST.get('title')
         text = request.POST.get('text')
         creator = request.user
+        group = get_object_or_404(Group, pk=group_id)
         data = {'title': title,
                 'text': text,
-                'creator': creator.pk}
+                'creator': creator.pk,
+                'group': group.pk}
         form = PostForm(data)
         if form.is_valid():
             post = form.instance
@@ -178,15 +198,17 @@ class PostCreate(LoginRequiredMixin, TemplateView):
 
 class PostUpdate(LoginRequiredMixin, TemplateView):
 
-    def get(self, request):
+    def get(self, request, post_id):
+        post = get_object_or_404(Post, pk=post_id)
+        form = PostForm(instance=post)
         template_name = 'posts/post_form.html'
-        return render(request, template_name=template_name)
+        return render(request, template_name, {'form': form})
 
     def post(self, request, post_id):
         title = request.POST.get('title')
         text = request.POST.get('text')
         post = get_object_or_404(Post, pk=post_id)
-        data = {'title': title, 'text': text, 'creator': post.creator.pk}
+        data = {'title': title, 'text': text, 'creator': post.creator.pk, 'group': post.group.pk}
         form = PostForm(data=data, instance=post)
         if form.is_valid():
             form.save()

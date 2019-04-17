@@ -1,10 +1,22 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+{% extends 'base.html' %}
 
-</body>
-</html>
+{% block content %}
+
+     <h2 class="header-center">{{ post.title }}</h2>
+    <div class="card" style="width: 25rem; margin-left: 40%">
+  <div class="card-body">
+    <h5 class="card-title">{{ post.title }}</h5>
+    <h6 class="card-subtitle mb-2 text-muted">Created: {{ post.date_created}} by {{ post.creator.username }}</h6>
+    <h6 class="card-subtitle mb-2 text-muted">Group: {{ post.group.name }}</h6>
+       <p class="card-text">{{ post.text }}</p>
+
+      <a class="btn btn-success" href="{% url 'post_update' post.pk %}" role="button">Update</a>
+      <form method="post" action="{% url 'post_delete' post.pk %}"> {% csrf_token %}
+    <button class="btn btn-danger"  type="submit">Delete</button>
+      </form>
+  </div>
+    </div>
+
+
+
+{% endblock %}

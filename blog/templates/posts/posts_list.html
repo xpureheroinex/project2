@@ -1,10 +1,18 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+{% extends 'base.html' %}
 
-</body>
-</html>
+{% block content %}
+<h2 class="header-center">Posts</h2>
+    {% for post in post_list %}
+    <div class="card ml-4" style="width: 50rem; ">
+  <div class="card-header">
+    {{ post.date_created }} by {{ post.creator }}
+  </div>
+  <div class="card-body">
+    <h5 class="card-title">{{ post.title }}</h5>
+    <p class="card-text">{{ post.text }}</p>
+    <a href="{% url 'post_info' post.pk %}" class="btn btn-primary">Detail</a>
+  </div>
+</div>
+    {% endfor %}
+
+{% endblock %}

@@ -14,17 +14,46 @@
   <div class="card-body">
     <h5 class="card-title">Welcome to {{ group.name }}</h5>
     <h6 class="card-subtitle mb-2 text-muted">Created: {{ group.date_created }} by {{ group.creator.username }}</h6>
-    <h6 class="card-subtitle mb-2 text-muted">Theme: {{ group.get_theme_display }}</h6>
+    <h6 class="card-subtitle mb-2 text-muted">Topic: {{ group.get_theme_display }}</h6>
     <h6 class="card-subtitle mb-2 text-muted">Members:  {{ group.members.count }}</h6>
+
+      {% if is_member %}
 
  <a class="btn btn-success" href="{% url 'group_update' group.pk %}" role="button">Update</a>
       <form method="post" action="{% url 'group_delete' group.pk %}"> {% csrf_token %}
     <button class="btn btn-danger"  type="submit">Delete</button>
           </form>
+      <form method="post">
+              {% csrf_token %}
+              <button class="btn btn-danger" type="submit" >Leave</button>
+          </form>
+      {% else %}
+
+          <form method="post">
+              {% csrf_token %}
+              <button class="btn btn-warning" type="submit" >Join</button>
+          </form>
+
+      {% endif %}
+
 
   </div>
 </div>
         <h2 class="header-center">Posts in the group:</h2>
+
+    <a class="btn btn-success" href="{% url 'post_create' group.pk %}" role="button">Create new</a>
+    {% for post in posts %}
+    <div class="card ml-4" style="width: 50rem; ">
+  <div class="card-header">
+    {{ post.date_created }}
+  </div>
+  <div class="card-body">
+    <h5 class="card-title">{{ post.title }}</h5>
+    <p class="card-text">{{ post.text }}</p>
+    <a href="{% url 'post_info' pk=post.id %}" class="btn btn-primary">Detail</a>
+  </div>
+</div>
+    {% endfor %}
 {#    TODO: connect post to group in model, list all posts in group here #}
 
 

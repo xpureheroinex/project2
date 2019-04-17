@@ -160,7 +160,7 @@ class GroupTest(TestCase):
 
     def test_create_group_page_returns_correct_template(self):
         response = self.client.get("/groups/new/")
-        self.assertTemplateUsed(response, 'groups/group_form.html')
+        self.assertTemplateUsed(response, 'groups/group_create.html')
         self.assertEqual(response.status_code, 200)
 
     def test_group_update_url_resolves_to_GroupUpdate_view(self):
@@ -181,7 +181,7 @@ class GroupTest(TestCase):
         self.assertRedirects(response, '/groups/')
 
     def test_join_group_by_user(self):
-        response = self.client.post(f'/groups/{self.new_group.pk}/join/')
+        response = self.client.post(f'/groups/{self.new_group.pk}/')
         self.assertRedirects(response, f'/groups/{self.new_group.pk}/')
 
 
@@ -192,7 +192,10 @@ class PostTest(TestCase):
         self.anonymous_client = Client()
         self.user = User.objects.create_user(**LOGIN_USER_DATA)
         self.client.login(username='test', password='test123')
-        self.post = Post.create(**NEW_POST_DATA, creator = self.user)
+        self.group = Group.create(**NEW_GROUP_DATA, creator=self.user)
+        NEW_POST_DATA['creator'] = self.user
+        NEW_POST_DATA['group'] = self.group
+        self.post = Post.create(**NEW_POST_DATA)
 
     def tearDown(self):
         del self.client
@@ -213,11 +216,11 @@ class PostTest(TestCase):
         self.assertEqual(found_view.url_name, 'post_info')
 
     def test_post_create_url_resolves_to_PostCreate_view(self):
-        found_view = resolve('/posts/create/')
+        found_view = resolve(f'/groups/{self.group.pk}/new_post/')
         self.assertEqual(found_view.url_name, 'post_create')
 
     def test_create_post_by_authenticated_user(self):
-        response = self.client.post('/posts/create/', data=NEW_POST_DATA)
+        response = self.client.post(f'/groups/{self.group.pk}/new_post/', data=NEW_POST_DATA)
         self.assertRedirects(response, '/posts/')
 
     def test_post_update_url_resolves_to_PostUpdate_view(self):

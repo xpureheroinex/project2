@@ -51,10 +51,12 @@ class Post(models.Model):
     title = models.CharField(max_length=100)
     text = models.TextField()
     creator = models.ForeignKey(User, on_delete=models.CASCADE, related_name='post_creator')
+    group = models.ForeignKey(Group, on_delete=models.CASCADE, related_name='post_group')
     date_created = models.DateTimeField(default=timezone.now)
 
     @classmethod
-    def create(cls, title, text, creator):
-        post = Post(title=title, text=text, creator=creator)
+    def create(cls, title, text, creator, group):
+        post = Post(title=title, text=text, creator=creator, group=group)
         post.save()
         return post
+

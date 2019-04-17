@@ -15,7 +15,7 @@ class PostForm(forms.ModelForm):
 
     class Meta:
         model = Post
-        fields = ['title', 'text', 'creator']
+        fields = ['title', 'text', 'creator', 'group']
 
     title = forms.CharField(label='title', max_length=100)
     text = forms.Textarea()
