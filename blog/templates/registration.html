@@ -2,14 +2,16 @@
 {% block content %}
      <div class="text-center login-container">
     <div class="form-group col-5 login-bg">
-    <form method="POST" id='log_form' class="form-signin" >
+    <form method="POST" id='reg_form' class="form-signin" >
         {% csrf_token %}
         <h1 class="h3 mb-3 font-weight-normal">Please sign up</h1>
         <label for=name class="sr-only">USERNAME</label>
         <input type="text" name="username" id="name" class="form-control username-input"
         placeholder="Username" required autofocus> <br>
+       <input type="email" name="email" id="email" class="form-control username-input"
+        placeholder="Email" required autofocus> <br>
         <label for=password class="sr-only">ENTER PASSWORD</label>
-        <input type="password" name=password id="password1" class="form-control password-input"
+        <input type="password" name=password1 id="password1" class="form-control password-input"
         placeholder="Password" required> <br>
          <label for=password2 class="sr-only">REPEAT PASSWORD</label>
         <input type="password" name=password2 id="password2" class="form-control password-input"

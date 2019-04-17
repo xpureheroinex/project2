@@ -30,6 +30,9 @@
                 <li class="nav-item active">
                 <a  class="nav-link" href="{% url 'post_list' %}">Posts</a>
                 </li>
+               <li class="nav-item active">
+                <a  class="nav-link" href="{% url 'drafts_list' %}">My drafts</a>
+                </li>
                 <li class="nav-item active">
                 <a  class="nav-link" href="{% url 'logout' %}">Logout</a>
                 </li>
@@ -49,12 +52,6 @@
 </header>
 {% block content %}
 
-{% endblock %}
-
-<script src="https://code.jquery.com/jquery-3.1.0.min.js"></script>
-{#    <script src="{% static 'js/app.js' %}"></script>#}
-    <!-- pre block javascript-->
-{% block javascript %}
 {% endblock %}
 
 

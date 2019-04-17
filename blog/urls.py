@@ -24,6 +24,8 @@ urlpatterns = [
     path('posts/<int:post_id>/update/', views.PostUpdate.as_view(),
          name='post_update'),
     path('posts/<int:post_id>/delete/', views.PostDelete.as_view(),
-         name='post_delete')
+         name='post_delete'),
+    path('drafts/', views.DraftsList.as_view(), name='drafts_list')
+
 
 ]

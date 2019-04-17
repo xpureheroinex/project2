@@ -59,6 +59,7 @@ def user_registration(request):
             if password1 == password2:
                 user = User.objects.create_user(username, email)
                 user.set_password(password1)
+                user.save()
                 return HttpResponseRedirect('/')
             else:
                 return HttpResponse(settings.REGISTRATION_PASSWORDS_ERROR_MESSAGE,
@@ -86,7 +87,6 @@ class GroupPage(LoginRequiredMixin, TemplateView):
 
     def post(self, request, group_id):
         group = get_object_or_404(Group, pk=group_id)
-        template_name = 'groups/group_info.html'
         user = request.user
         is_member = self.is_member(user, group)
         if is_member:
@@ -162,6 +162,12 @@ class GroupDelete(LoginRequiredMixin, TemplateView):
             return HttpResponse("Couldn't delete", status=400)
 
 
+# class PostPage(LoginRequiredMixin, TemplateView):
+#
+#     def get(self, request, **args):
+#         template_name = 'posts/posts_list.html'
+#
+#
 
 class PostsList(LoginRequiredMixin, ListView):
 
@@ -184,6 +190,7 @@ class PostCreate(LoginRequiredMixin, TemplateView):
         title = request.POST.get('title')
         text = request.POST.get('text')
         creator = request.user
+        publish = request.POST.get('publish')
         group = get_object_or_404(Group, pk=group_id)
         data = {'title': title,
                 'text': text,
@@ -192,6 +199,8 @@ class PostCreate(LoginRequiredMixin, TemplateView):
         form = PostForm(data)
         if form.is_valid():
             post = form.instance
+            if publish is None:
+                post.date_created = timezone.now()
             post.save()
             return HttpResponseRedirect('/posts/')
         return HttpResponse("Couldn't create a post", status=400)
@@ -226,6 +235,14 @@ class PostDelete(LoginRequiredMixin, TemplateView):
             return HttpResponse("Couldn't delete", status=400)
 
 
+class DraftsList(LoginRequiredMixin, ListView):
+
+    def get(self, request):
+        user = request.user
+        posts = Post.objects.filter(creator=user, date_created=None).values()
+        drafts = [elem for elem in posts]
+        template_name = 'posts/drafts_list.html'
+        return render(request, template_name, {'drafts': drafts})
 
 
 

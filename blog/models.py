@@ -52,7 +52,7 @@ class Post(models.Model):
     text = models.TextField()
     creator = models.ForeignKey(User, on_delete=models.CASCADE, related_name='post_creator')
     group = models.ForeignKey(Group, on_delete=models.CASCADE, related_name='post_group')
-    date_created = models.DateTimeField(default=timezone.now)
+    date_created = models.DateTimeField(null=True)
 
     @classmethod
     def create(cls, title, text, creator, group):
