@@ -14,10 +14,12 @@
         <div class="card" style="width: 25rem; ">
   <div class="card-body">
     <h5 class="card-title"><a class="nav nav-elem" href="{% url 'group_info' group_id=group.pk %}">
-            {{ group.name }}</a></h5>
+            {{ group.name }}</a>  {% if group.is_private %}<span class="badge badge-secondary">private</span></h5> {% endif %}
+
     <h6 class="card-subtitle mb-2 text-muted">Created: {{ group.date_created }} by {{ group.creator.username }}</h6>
     <h6 class="card-subtitle mb-2 text-muted">Theme: {{ group.get_theme_display }}</h6>
     <h6 class="card-subtitle mb-2 text-muted">Members:  {{ group.members.count }}</h6>
+
 
 
   </div>

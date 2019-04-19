@@ -25,7 +25,9 @@ urlpatterns = [
          name='post_update'),
     path('posts/<int:post_id>/delete/', views.PostDelete.as_view(),
          name='post_delete'),
-    path('drafts/', views.DraftsList.as_view(), name='drafts_list')
+    path('drafts/', views.DraftsList.as_view(), name='drafts_list'),
+    path('posts/<int:draft_id>/publish/', views.publish, name='draft_publish'),
+    path('groups/<int:group_id>/invite/', views.invite, name='invite')
 
 
 ]

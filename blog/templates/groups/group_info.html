@@ -13,16 +13,18 @@
     <h6 class="card-subtitle mb-2 text-muted">Members:  {{ group.members.count }}</h6>
 
       {% if is_member %}
+          {% if is_creator %}
 
  <a class="btn btn-success" href="{% url 'group_update' group.pk %}" role="button">Update</a>
       <form method="post" action="{% url 'group_delete' group.pk %}"> {% csrf_token %}
     <button class="btn btn-danger"  type="submit">Delete</button>
           </form>
+              {% endif %}
       <form method="post">
               {% csrf_token %}
               <button class="btn btn-danger" type="submit" >Leave</button>
           </form>
-      {% else %}
+      {% elif not group.is_private %}
 
           <form method="post">
               {% csrf_token %}
@@ -31,8 +33,26 @@
 
       {% endif %}
 
+  {% if group.is_private and is_member %}
+      <br>
+      <form method="post" action="{% url 'invite' group.pk %}">
+          {% csrf_token %}
+  <div class="input-group flex-nowrap">
+  <div class="input-group-prepend">
+    <span class="input-group-text" id="addon-wrapping">@</span>
+  </div>
+
+  <input type="text" class="form-control" placeholder="Username" aria-label="Username" aria-describedby="addon-wrapping" name="invited_user">
+   <button class="btn btn-outline-secondary" type="submit" id="button-addon2">Invite</button>
+</div></form>
+      {% if message %}
+          <h5> {{ message }}</h5>
+          {% endif %}
+  {% endif %}
+
 
   </div>
+    {% if group.is_private and is_member or not group.is_private %}
 </div>
         <h2 class="header-center">Posts in the group:</h2>
 
@@ -49,8 +69,6 @@
   </div>
 </div>
     {% endfor %}
+    {% endif %}
 
-
-
-    </div>
 {% endblock %}

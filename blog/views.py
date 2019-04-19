@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.views.generic import (ListView, DetailView, View, TemplateView)
 from django.contrib.auth.models import User
 from django.contrib.auth import login, logout
-from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator
 from django.http import HttpResponseRedirect, HttpResponse, JsonResponse
@@ -81,7 +81,9 @@ class GroupPage(LoginRequiredMixin, TemplateView):
         posts = [elem for elem in post_list]
         user = request.user
         is_member = self.is_member(user, group)
+        is_creator = self.is_creator(user.pk, group_id)
         return render(request, template_name, {'is_member': is_member,
+                                               'is_creator': is_creator,
                                                'group': group,
                                                'posts': posts})
 
@@ -107,6 +109,16 @@ class GroupPage(LoginRequiredMixin, TemplateView):
             is_member = False
         return is_member
 
+    @staticmethod
+    def is_creator(user_id, group_id):
+        user = User.objects.get(pk=user_id)
+        group = Group.objects.get(pk=group_id)
+        creator = group.creator
+        if creator.pk == user.pk:
+            return True
+        return False
+
+
 class GroupCreate(LoginRequiredMixin, TemplateView):
 
     def get(self, request):
@@ -115,8 +127,11 @@ class GroupCreate(LoginRequiredMixin, TemplateView):
         return render(request, template_name, {'form': form})
 
     def post(self, request):
+
         name = request.POST.get('name')
         theme = request.POST.get('theme')
+        is_private = request.POST.get('private')
+
         creator = request.user
         data = {'name': name,
                 'theme': theme,
@@ -124,7 +139,13 @@ class GroupCreate(LoginRequiredMixin, TemplateView):
         form = GroupForm(data)
         if form.is_valid():
             group = form.instance
-            group.save()
+            if is_private is None:
+                group.save()
+            else:
+                group.is_private = True
+                group.save()
+                membership = Membership(user=creator, group=group, date_joined=timezone.now())
+                membership.save()
             return HttpResponseRedirect('/groups/')
         return HttpResponse("Data is not valid", status=400)
 
@@ -134,20 +155,26 @@ class GroupUpdate(LoginRequiredMixin, TemplateView):
     def get(self, request, group_id):
         group = Group.objects.get(pk=group_id)
         form = GroupForm(instance=group)
+        user = request.user
         template_name = "groups/group_form.html"
-        return render(request, template_name, {'form': form})
+        if GroupPage.is_creator(user.pk, group_id):
+            return render(request, template_name, {'form': form})
+        return render(request, template_name, {'form': form,
+                                            'error': "Only creator is allowed to update the group"})
 
     def post(self, request, group_id):
+        user = request.user
         group = get_object_or_404(Group, id=group_id)
-        name = request.POST.get('name')
-        theme = request.POST.get('theme')
-        data = {'name': name, 'theme': theme, 'creator': group.creator.pk}
-        form = GroupForm(data=data, instance=group)
-        if form.is_valid():
-            form.save()
-            # return render(request, "groups/group_info.html")
-            return HttpResponseRedirect(f'/groups/{group_id}/')
-        return HttpResponse("Update wasn't successful", status=400)
+        if GroupPage.is_creator(user.pk, group_id):
+            name = request.POST.get('name')
+            theme = request.POST.get('theme')
+            data = {'name': name, 'theme': theme, 'creator': group.creator.pk}
+            form = GroupForm(data=data, instance=group)
+            if form.is_valid():
+                form.save()
+                # return render(request, "groups/group_info.html")
+                return HttpResponseRedirect(f'/groups/{group_id}/')
+        return render(request,  "groups/group_form.html", {'error': "Only creator is allowed to update the group"})
 
 
 class GroupDelete(LoginRequiredMixin, TemplateView):
@@ -160,6 +187,32 @@ class GroupDelete(LoginRequiredMixin, TemplateView):
             return HttpResponseRedirect('/groups/')
         except:
             return HttpResponse("Couldn't delete", status=400)
+
+
+@login_required
+def invite(request, group_id):
+    if request.method == "POST":
+        user_current = request.user
+        username = request.POST.get('invited_user')
+        group = get_object_or_404(Group, pk=group_id)
+        is_creator = GroupPage.is_creator(user_current.pk, group.pk)
+        data = {'group': group,
+                'is_member': True,
+                'is_creator': is_creator}
+        try:
+            user = User.objects.get(username=username)
+            try:
+                member = Membership.objects.get(user=user, group=group)
+                return render(request, 'groups/group_info.html',
+                              {**data,'message': "User is a member already"})
+            except Membership.DoesNotExist:
+                membership = Membership(user=user, group=group, date_joined=timezone.now())
+                membership.save()
+            return render(request, 'groups/group_info.html', {**data,'message': "User was invited"} )
+
+        except User.DoesNotExist:
+            return render(request, 'groups/group_info.html', {**data, 'message': "User doesn't exist",})
+
 
 
 # class PostPage(LoginRequiredMixin, TemplateView):
@@ -181,10 +234,15 @@ class PostInfo(LoginRequiredMixin, DetailView):
 
 class PostCreate(LoginRequiredMixin, TemplateView):
 
-    def get(self, request, **args):
+    def get(self, request, group_id):
         template_name = 'posts/post_create.html'
         form = PostForm()
-        return render(request, template_name, {'form': form})
+        creator = request.user
+        group = get_object_or_404(Group, pk=group_id)
+        if GroupPage.is_member(creator, group):
+            return render(request, template_name, {'form': form})
+        return render(request, 'posts/post_create.html',
+                      {'error': "You must join group to create posts"})
 
     def post(self, request, group_id):
         title = request.POST.get('title')
@@ -192,37 +250,58 @@ class PostCreate(LoginRequiredMixin, TemplateView):
         creator = request.user
         publish = request.POST.get('publish')
         group = get_object_or_404(Group, pk=group_id)
-        data = {'title': title,
-                'text': text,
-                'creator': creator.pk,
-                'group': group.pk}
-        form = PostForm(data)
-        if form.is_valid():
-            post = form.instance
-            if publish is None:
-                post.date_created = timezone.now()
-            post.save()
-            return HttpResponseRedirect('/posts/')
-        return HttpResponse("Couldn't create a post", status=400)
+        if GroupPage.is_member(creator, group):
+            data = {'title': title,
+                    'text': text,
+                    'creator': creator.pk,
+                    'group': group.pk}
+            form = PostForm(data)
+            if form.is_valid():
+                post = form.instance
+                if publish is None:
+                    post.date_created = timezone.now()
+                post.save()
+                if group.is_private == True:
+                    post.is_private = True
+                    post.save()
+                return HttpResponseRedirect('/posts/')
+        return render(request, 'posts/post_create.html', {'error': "You must join group to create posts"})
 
 class PostUpdate(LoginRequiredMixin, TemplateView):
 
+    @staticmethod
+    def is_creator(user_id, post_id):
+        user = User.objects.get(pk=user_id)
+        post = Post.objects.get(pk=post_id)
+        creator = post.creator
+        if creator.pk == user.pk:
+            return True
+        return False
+
     def get(self, request, post_id):
+        user_id = request.user.pk
+        template_name = 'posts/post_form.html'
         post = get_object_or_404(Post, pk=post_id)
         form = PostForm(instance=post)
-        template_name = 'posts/post_form.html'
-        return render(request, template_name, {'form': form})
+        if self.is_creator(user_id, post_id):
+            return render(request, template_name, {'form': form})
+        else:
+            return render(request, template_name, {'form': form, 'error':"Only creator is allowed to update the group" })
+
 
     def post(self, request, post_id):
-        title = request.POST.get('title')
-        text = request.POST.get('text')
-        post = get_object_or_404(Post, pk=post_id)
-        data = {'title': title, 'text': text, 'creator': post.creator.pk, 'group': post.group.pk}
-        form = PostForm(data=data, instance=post)
-        if form.is_valid():
-            form.save()
-            return HttpResponseRedirect(f'/posts/{post_id}')
-        return HttpResponse("Update wasn't successful", status=400)
+        user_id = request.user.pk
+        if self.is_creator(user_id, post_id):
+            title = request.POST.get('title')
+            text = request.POST.get('text')
+            post = get_object_or_404(Post, pk=post_id)
+            data = {'title': title, 'text': text, 'creator': post.creator.pk,
+                    'group': post.group.pk}
+            form = PostForm(data=data, instance=post)
+            if form.is_valid():
+                form.save()
+                return HttpResponseRedirect(f'/posts/{post_id}')
+        return render(request, 'posts/post_form.html', {'error': "Only creator is allowed to update the group"})
 
 class PostDelete(LoginRequiredMixin, TemplateView):
 
@@ -243,6 +322,16 @@ class DraftsList(LoginRequiredMixin, ListView):
         drafts = [elem for elem in posts]
         template_name = 'posts/drafts_list.html'
         return render(request, template_name, {'drafts': drafts})
+
+
+@login_required
+def publish(request, draft_id):
+    if request.method == "POST":
+        post = Post.objects.get(pk=draft_id)
+        post.date_created = timezone.now()
+        post.save()
+        return HttpResponseRedirect('/drafts/')
+
 
 
 

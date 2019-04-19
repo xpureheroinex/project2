@@ -6,14 +6,25 @@
     <div class="card" style="width: 25rem; margin-left: 40%">
   <div class="card-body">
     <h5 class="card-title">{{ post.title }}</h5>
+      {% if post.date_created %}
     <h6 class="card-subtitle mb-2 text-muted">Created: {{ post.date_created}} by {{ post.creator.username }}</h6>
+      {% else %}
+      <h6 class="card-subtitle mb-2 text-muted">Created by {{ post.creator.username }}, not published yet</h6>
+      {% endif %}
+
     <h6 class="card-subtitle mb-2 text-muted">Group: {{ post.group.name }}</h6>
        <p class="card-text">{{ post.text }}</p>
-
+    {% if user.pk == post.creator.pk %}
       <a class="btn btn-success" href="{% url 'post_update' post.pk %}" role="button">Update</a>
       <form method="post" action="{% url 'post_delete' post.pk %}"> {% csrf_token %}
     <button class="btn btn-danger"  type="submit">Delete</button>
       </form>
+  {% if not post.date_created %}
+       <form method="post" action="{% url 'draft_publish' post.pk %}"> {% csrf_token %}
+    <button class="btn btn-warning"  type="submit">Publish</button>
+      </form>
+  {% endif %}
+  {% endif %}
   </div>
     </div>
 

@@ -2,13 +2,16 @@ from django.test import TestCase, Client, RequestFactory
 from django.urls import resolve, reverse
 from django.contrib.auth.models import User
 from django.http import HttpRequest
-from .models import Group, Post
+from .models import Group, Post, Membership
 from django.conf import settings
 from django.utils import timezone
 from . import views
 import unittest
 
 LOGIN_USER_DATA = {'username': 'test',
+                   'email': 'test@test.com',
+                   'password': 'test123'}
+NEW_USER_DATA = {'username': 'new user',
                    'email': 'test@test.com',
                    'password': 'test123'}
 
@@ -24,11 +27,19 @@ UNVALID_REGISTRATION_USER_DATA = {'username': 'test2',
 
 NEW_GROUP_DATA = {'name': 'test_group',
                   'theme': 'GE',
+
+                  }
+CREATE_GROUP_DATA = {'name': 'create new group',
+                  'theme': 'GE',
+
                   }
 UPDATE_GROUP_DATA = {'name': 'updated_group',
                   'theme': 'SP',
+
                   }
 NEW_POST_DATA = {'title':'test',
+                 'text': 'this is a test text'}
+CREATE_POST_DATA = {'title':'create new post',
                  'text': 'this is a test text'}
 UPDATE_POST_DATA = {'title': 'update title',
                     'text': 'this is updated text'}
@@ -155,7 +166,10 @@ class GroupTest(TestCase):
         self.assertEqual(found_view.url_name, 'group_info')
 
     def test_create_new_group_by_user(self):
-        response = self.client.post('/groups/new/', data=NEW_GROUP_DATA)
+        response = self.client.post('/groups/new/', data=CREATE_GROUP_DATA)
+        CREATE_GROUP_DATA['creator'] = self.user
+        group = Group.objects.get(**CREATE_GROUP_DATA)
+        self.assertTrue(group)
         self.assertRedirects(response, '/groups/')
 
     def test_create_group_page_returns_correct_template(self):
@@ -170,6 +184,9 @@ class GroupTest(TestCase):
     def test_update_group_by_user(self):
         response = self.client.post(f'/groups/{self.new_group.pk}/update/',
                                     data=UPDATE_GROUP_DATA)
+        group = Group.objects.get(pk=self.new_group.pk)
+        self.assertEqual(group.name, UPDATE_GROUP_DATA['name'])
+        self.assertEqual(group.theme, UPDATE_GROUP_DATA['theme'])
         self.assertRedirects(response, f'/groups/{self.new_group.pk}/')
 
     def test_group_delete_url_resolves_to_GroupDelete_view(self):
@@ -177,12 +194,30 @@ class GroupTest(TestCase):
         self.assertEqual(found_view.url_name, 'group_delete')
 
     def test_delete_group_by_user(self):
+        before = Group.objects.count()
         response = self.client.post(f'/groups/{self.new_group.pk}/delete/')
+        after = Group.objects.count()
         self.assertRedirects(response, '/groups/')
+        self.assertEqual(after, before - 1)
 
     def test_join_group_by_user(self):
         response = self.client.post(f'/groups/{self.new_group.pk}/')
         self.assertRedirects(response, f'/groups/{self.new_group.pk}/')
+
+    def test_create_private_group(self):
+        response = self.client.post('/groups/new/', data={**CREATE_GROUP_DATA,
+                                                          'private': 'on'})
+        group = Group.objects.get(**CREATE_GROUP_DATA)
+        self.assertTrue(group.is_private)
+
+    def test_invite_user_to_private_group(self):
+        new_user = User.objects.create(**NEW_USER_DATA)
+        data = {**CREATE_GROUP_DATA, 'is_private': True}
+        group = Group(**data)
+        group.save()
+        response = self.client.post(f'/groups/{group.pk}/invite/', data={'invited_user': new_user.username})
+        membership = Membership.objects.filter(user=new_user, group=group).exists()
+        self.assertTrue(membership)
 
 
 class PostTest(TestCase):
@@ -192,6 +227,7 @@ class PostTest(TestCase):
         self.anonymous_client = Client()
         self.user = User.objects.create_user(**LOGIN_USER_DATA)
         self.client.login(username='test', password='test123')
+        self.NOT_CREATOR_ERROR = "Only creator is allowed to update the group"
         self.group = Group.create(**NEW_GROUP_DATA, creator=self.user)
         NEW_POST_DATA['creator'] = self.user
         NEW_POST_DATA['group'] = self.group
@@ -220,8 +256,19 @@ class PostTest(TestCase):
         self.assertEqual(found_view.url_name, 'post_create')
 
     def test_create_post_by_authenticated_user(self):
-        response = self.client.post(f'/groups/{self.group.pk}/new_post/', data=NEW_POST_DATA)
+        before = Post.objects.count()
+        CREATE_POST_DATA['creator'] = self.user
+        CREATE_POST_DATA['group'] = self.group
+        data = CREATE_POST_DATA
+        response = self.client.post(f'/groups/{self.group.pk}/')
+
+        response = self.client.post(f'/groups/{self.group.pk}/new_post/',
+                                    data={**CREATE_POST_DATA, 'publish': 'on'})
+        after = Post.objects.count()
+        post = Post.objects.get(**CREATE_POST_DATA)
         self.assertRedirects(response, '/posts/')
+        self.assertEqual(after, before + 1)
+        self.assertTrue(post)
 
     def test_post_update_url_resolves_to_PostUpdate_view(self):
         found_view = resolve(f'/posts/{self.post.pk}/update/')
@@ -230,15 +277,72 @@ class PostTest(TestCase):
     def test_update_post_by_authenticated_user(self):
         response = self.client.post(f'/posts/{self.post.pk}/update/',
                                     data=UPDATE_POST_DATA)
+        post = Post.objects.get(pk=self.post.pk)
+        self.assertEqual(post.text, UPDATE_POST_DATA['text'])
+        self.assertEqual(post.title, UPDATE_POST_DATA['title'])
         self.assertRedirects(response, f'/posts/{self.post.pk}')
+
+    def test_update_post_not_by_creator(self):
+        user = User.objects.create_user(**NEW_USER_DATA)
+        client = Client()
+        client.login(username='new user', password='test123')
+        response = client.post(f'/posts/{self.post.pk}/update/', data=UPDATE_POST_DATA)
+        error = response.context[-1]['error']
+        self.assertEqual(error, self.NOT_CREATOR_ERROR)
+
 
     def test_post_delete_url_resolves_to_PostDelete_view(self):
         found_view = resolve(f'/posts/{self.post.pk}/delete/')
         self.assertEqual(found_view.url_name, 'post_delete')
 
     def test_delete_post_by_authenticated_user(self):
+        before = Post.objects.count()
         response = self.client.post(f'/posts/{self.post.pk}/delete/')
+        after = Post.objects.count()
+        post = Post.objects.filter(pk=self.post.pk).exists()
+        self.assertEqual(after, before - 1)
+        self.assertFalse(post)
         self.assertRedirects(response, '/posts/')
 
+    def test_anonymous_user_not_allowed_to_create_post(self):
+        response = self.anonymous_client.post(f'/groups/{self.group.pk}/new_post/',
+                             data=CREATE_POST_DATA)
+        self.assertRedirects(response, '/login/?next=/groups/1/new_post/')
 
 
+class DraftTest(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.anonymous_client = Client()
+        self.user = User.objects.create_user(**LOGIN_USER_DATA)
+        self.client.login(username='test', password='test123')
+        self.group = Group.create(**NEW_GROUP_DATA, creator=self.user)
+        NEW_POST_DATA['creator'] = self.user
+        NEW_POST_DATA['group'] = self.group
+        self.post = Post.create(**NEW_POST_DATA)
+
+    def tearDown(self):
+        del self.client
+        del self.anonymous_client
+        del self.user
+
+    def test_drafts_url_resolves_to_DraftsList_view(self):
+        found_view = resolve('/drafts/')
+        self.assertEqual(found_view.url_name, 'drafts_list')
+
+    def test_drafts_url_returns_correct_template(self):
+        response = self.client.get('/drafts/')
+        self.assertTemplateUsed(response, 'posts/drafts_list.html')
+
+    def test_drafts_url_returned_correct_list_of_drafts(self):
+        draft = Post.objects.create(**NEW_POST_DATA)
+        response = self.client.get('/drafts/')
+        for draft in response.context[-1]['drafts']:
+            self.assertIsNone(draft['date_created'])
+
+    def test_publish_draft_by_user(self):
+        draft = Post.objects.create(**NEW_POST_DATA)
+        response = self.client.post(f'/posts/{draft.pk}/publish/')
+        posted = Post.objects.get(pk=draft.pk)
+        self.assertIsNotNone(posted.date_created)
+        self.assertRedirects(response, '/drafts/')

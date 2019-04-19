@@ -19,6 +19,8 @@ class Group(models.Model):
     creator = models.ForeignKey(User, on_delete=models.CASCADE, related_name='creator')
     date_created = models.DateTimeField(default=timezone.now)
     members = models.ManyToManyField(User, through='Membership', related_name='members')
+    is_private = models.BooleanField(default=False)
+
 
     def __str__(self):
         return self.name
@@ -53,10 +55,12 @@ class Post(models.Model):
     creator = models.ForeignKey(User, on_delete=models.CASCADE, related_name='post_creator')
     group = models.ForeignKey(Group, on_delete=models.CASCADE, related_name='post_group')
     date_created = models.DateTimeField(null=True)
+    is_private = models.BooleanField(default=False)
 
     @classmethod
     def create(cls, title, text, creator, group):
-        post = Post(title=title, text=text, creator=creator, group=group)
+        post = Post(title=title, text=text, creator=creator,
+                    group=group)
         post.save()
         return post
 

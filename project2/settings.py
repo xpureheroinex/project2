@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'blog',
+    'crispy_forms',
 ]
 
 MIDDLEWARE = [
@@ -124,3 +125,5 @@ LOGIN_URL = '/login/'
 LOGIN_ERROR_MESSAGE ="Wrong credentials, try again"
 REGISTRATION_PASSWORDS_ERROR_MESSAGE = "Passwords don't match"
 REGISTRATION_USER_EXISTS_ERROR_MESSAGE = "User with this username already exists"
+
+CRISPY_TEMPLATE_PACK = 'bootstrap4'
